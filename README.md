@@ -1,2 +1,2 @@
 # p4dev-docker
-P4 dev environment in docker
+Converted from https://github.com/jafingerhut/p4-guide.

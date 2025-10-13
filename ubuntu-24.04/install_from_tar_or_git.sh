@@ -1,34 +1,28 @@
 #!/bin/bash
-set -euo pipefail
-install_from_tar_or_git() {
-    local tar_path=$1
-    local git_url=$2
-    local target_dir=$3
-    
-    if [ -e "$target_dir" ]; then
-        echo "[INFO] Removing existing directory: $target_dir"
-        rm -rf "$target_dir"
-    fi
-    
-    if [ -f "$tar_path" ]; then
-        echo "[INFO] Archive found, extracting: $tar_path -> $target_dir..."
-        local temp_dir
-        temp_dir=$(mktemp -d)
-        tar -xaf "tar_path" -C "$temp_dir"
-        mkdir "target_dir"
-        mv "temp_dir"/* "target_dir"
-        rm -rf "$temp_dir"
-    else
-        echo "[INFO] Cloning repo: $git_url -> $target_dir"
-        git clone "$git_url" "$target_dir"
-    fi
-    
-    echo "[DEBUG] Target directory: $target_dir"
-    echo "[DEBUG] Directory exists? $( [ -d "$target_dir" ] && echo "Yes" || echo "No" )"
-    echo "[DEBUG] Directory contents:"
-    ls -la "$target_dir" 2>/dev/null || echo "[ERROR] Cannot read directory"
-    echo "[DEBUG] Is directory empty? $( [ -z "$(ls -A "$target_dir" 2>/dev/null)" ] && echo "Yes" || echo "No" )"
-    echo "[DEBUG] Is directory a git repo? $( git -C "$target_dir" rev-parse --is-inside-work-tree 2>/dev/null || echo "No" )"
-}
 
-install_from_tar_or_git "$1" "$2" "$3"
+if [ "$#" -ne 3 ]; then
+    echo "用法: $0 <archive_name> <git_url> <dest_dir>"
+    exit 1
+fi
+
+ARCHIVE="$1"
+GIT_URL="$2"
+TARGET_DIR="$3"
+
+if [ -d "$TARGET_DIR" ]; then
+    exit 1
+fi
+
+if [ -f "$ARCHIVE" ]; then
+    mkdir "$TARGET_DIR"
+    case "$ARCHIVE" in
+        *.tar.gz|*.tgz) tar -xzf "$ARCHIVE" -C "$TARGET_DIR" --strip-components=1 ;;
+        *.tar.bz2) tar -xjf "$ARCHIVE" -C "$TARGET_DIR" --strip-components=1 ;;
+        *.zip) unzip "$ARCHIVE" -d "$TARGET_DIR" ;;
+        *) echo "$ARCHIVE not supported" && exit 1 ;;
+    esac
+else
+    git clone "$GIT_URL" "$TARGET_DIR"
+fi
+
+

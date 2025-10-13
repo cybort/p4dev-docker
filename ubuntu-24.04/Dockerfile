@@ -1,4 +1,5 @@
-ARG DOCKER_HUB=docker.imgdb.de
+ 
+ARG DOCKER_HUB=666860.xyz
 FROM ${DOCKER_HUB}/library/ubuntu:24.04
 
 ENV DEBIAN_FRONTEND=noninteractive
@@ -28,6 +29,8 @@ RUN apt-get update && apt-get install -y --fix-missing\
     libboost-dev \
     libboost-system-dev \
     libboost-thread-dev \
+    libboost-iostreams-dev \
+    libboost-graph-dev \
     libgflags-dev \
     net-tools \
     git \
@@ -39,23 +42,26 @@ ENV PATH="${PYTHON_ENV}/bin:${PATH}"
 
 RUN pip3 install protobuf grpcio psutil crcmod scapy==2.5.0
 
-RUN apt-get update && apt-get install -y \
+RUN apt-get update && apt-get install -y software-properties-common
+RUN add-apt-repository universe && \
+    add-apt-repository multiverse && \
+    apt-get update
+
+RUN apt-get install -y \
     libgrpc-dev \
     libgrpc++-dev \
     libprotobuf-dev \
     protobuf-compiler \
-    protobuf-compiler-grpc \
-    && rm -rf /var/lib/apt/lists/*
+    protobuf-compiler-grpc
 
 WORKDIR ${INSTALL_DIR}
 COPY install_from_tar_or_git.sh ./
 COPY *.tar.* ./
 
 # Collect P4-dev repos
-WORKDIR ${INSTALL_DIR}
 RUN ./install_from_tar_or_git.sh PI.tar.gz https://github.com/p4lang/PI PI
 WORKDIR ${INSTALL_DIR}/PI
-RUN pwd && ls -l ../ && ls -l && git submodule update --init --recursive
+RUN git submodule update --init --recursive
 WORKDIR ${INSTALL_DIR}
 RUN ./install_from_tar_or_git.sh behavioral-model.tar.gz https://github.com/p4lang/behavioral-model.git behavioral-model
 RUN ./install_from_tar_or_git.sh p4c.tar.gz https://github.com/p4lang/p4c p4c
@@ -80,40 +86,34 @@ COPY patches/behavioral-model-support-fedora.patch ./
 COPY patches/behavioral-model-support-venv.patch ./
 RUN patch -p1 < behavioral-model-support-fedora.patch && \
     patch -p1 < behavioral-model-support-venv.patch
-RUN ./install_deps.sh
-RUN mkdir build && cd build && \
-    cmake -DWITH_PI=on -DWITH_THRIFT=ON -DENABLE_MODULES=on ..
-WORKDIR ${INSTALL_DIR}/behavioral-model/build
-RUN make -j${nproc}
-RUN make install/strip
+RUN find . -type f -name "*.sh" -exec sed -i 's/sudo //g' {} +
+RUN ./install_deps.sh    
+RUN --mount=type=tmpfs,target=build \
+    cd build && cmake -DWITH_PI=on -DWITH_THRIFT=ON -DENABLE_MODULES=on .. && \
+    make -j8 && make install/strip
 WORKDIR ${INSTALL_DIR}
-RUN rm -rf behavioral-model/build
 
 WORKDIR ${INSTALL_DIR}/p4c
 RUN mkdir build && cd build && cmake .. -DCMAKE_BUILD_TYPE=Release -DENABLE_TEST_TOOLS=ON
 WORKDIR ${INSTALL_DIR}/p4c/build
-RUN make -j${nproc}
+RUN make -j8
 RUN make install/strip
-RUN sudo ldconfig
+RUN ldconfig
 WORKDIR ${INSTALL_DIR}
 RUN rm -rf p4c/build
 
 #RUN apt-get update && apt-get install -y mininet && \
 #    rm -rf /var/lib/apt/lists/*
 
-WORKDIR ${INSTALL_DIR}/mininet
+WORKDIR ${INSTALL_DIR}
 # 2024-Sep-18
-RUN git checkout "6eb8973c0bfd13c25c244a3871130c5e36b5fbd7"
-COPY patches/mininet-patch-for-2024-sep-enable-venv.patch ./
-RUN patch -p1 < mininet-patch-for-2024-sep-enable-venv.patch
-RUN if [ -e /etc/sudoers.d/sudoers-dotfiles ] \
-    then \
-        sudo mv /etc/sudoers.d/sudoers-dotfiles /etc/sudoers.d/sudoers-dotfiles.orig \
-        PYTHON=python3 ./util/install.sh -nw \
-        sudo mv /etc/sudoers.d/sudoers-dotfiles.orig /etc/sudoers.d/sudoers-dotfiles \
-    else \
-        PYTHON=python3 ./util/install.sh -nw \
-    fi
+RUN rm -rf mininet
+RUN mkdir mininet && tar -xaf mininet.tar.gz -C ./mininet
+WORKDIR ${INSTALL_DIR}/mininet
+RUN sed -i 's/sudo //g' ./util/install.sh
+RUN sed -i 's/$install /eval $install /g' ./util/install.sh
+RUN sed -i 's/$install /eval $install /g' ./util/install.sh
+RUN PYTHON=python3 ./util/install.sh -nw
 WORKDIR ${INSTALL_DIR}
 
 WORKDIR ${INSTALL_DIR}/ptf
@@ -128,12 +128,12 @@ WORKDIR ${INSTALL_DIR}
 
 COPY utils ./
 
-RUN p4-environment-info.sh
+RUN ls -l #./utils #./utils/p4-environment-info.sh
 
-RUN echo "source ${PYTHON_ENV}/bin/activate" > p4setup.sh && \
-    echo "export PATH=\"${INSTALL_DIR}/utils:${INSTALL_DIR}/behavioral-model/tools:/usr/local/bin:\$PATH\"" >> p4setup.sh && \
-    echo "export P4_EXTRA_SUDO_OPTS=\"PROTOCOL_BUFFERS_PYTHON_IMPLEMETATION=python\"" >> p4setup.sh && \
-    chmod +x p4setup.sh \
-    echo "source ${INSTALL_DIR}/p4setup.sh" >> ~/.bashrc
+RUN echo "source ${PYTHON_ENV}/bin/activate" > p4setup.sh
+RUN echo "export PATH=\"${INSTALL_DIR}/utils:${INSTALL_DIR}/behavioral-model/tools:/usr/local/bin:\$PATH\"" >> p4setup.sh
+RUN echo "export P4_EXTRA_SUDO_OPTS=\"PROTOCOL_BUFFERS_PYTHON_IMPLEMETATION=python\"" >> p4setup.sh
+RUN chmod +x p4setup.sh
+RUN echo "source ${INSTALL_DIR}/p4setup.sh" >> ~/.bashrc
 
 CMD ["/bin/bash", "-c", "source /p4-dev/p4setup.sh && bash"]
