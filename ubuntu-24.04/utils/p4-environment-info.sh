@@ -21,7 +21,7 @@ get_package_info() {
     local exit_status
     echo ""
     echo "$ which $pkg"
-    which $pkg
+    type -p $pkg
     exit_status=$?
     if [ $exit_status != 0 ]
     then

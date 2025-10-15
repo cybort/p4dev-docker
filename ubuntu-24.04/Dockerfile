@@ -1,5 +1,4 @@
- 
-ARG DOCKER_HUB=666860.xyz
+ARG DOCKER_HUB=docker.io
 FROM ${DOCKER_HUB}/library/ubuntu:24.04
 
 ENV DEBIAN_FRONTEND=noninteractive
@@ -126,9 +125,9 @@ RUN patch -p1 < p4runtime-shell-2023-changes.patch
 RUN pip3 install .
 WORKDIR ${INSTALL_DIR}
 
-COPY utils ./
+COPY utils ./utils
 
-RUN ls -l #./utils #./utils/p4-environment-info.sh
+RUN apt-get install -y vim
 
 RUN echo "source ${PYTHON_ENV}/bin/activate" > p4setup.sh
 RUN echo "export PATH=\"${INSTALL_DIR}/utils:${INSTALL_DIR}/behavioral-model/tools:/usr/local/bin:\$PATH\"" >> p4setup.sh
@@ -136,4 +135,4 @@ RUN echo "export P4_EXTRA_SUDO_OPTS=\"PROTOCOL_BUFFERS_PYTHON_IMPLEMETATION=pyth
 RUN chmod +x p4setup.sh
 RUN echo "source ${INSTALL_DIR}/p4setup.sh" >> ~/.bashrc
 
-CMD ["/bin/bash", "-c", "source /p4-dev/p4setup.sh && bash"]
+CMD ["/bin/bash", "-c", "source /p4-dev/p4setup.sh && bash && /p4-dev/utils/p4-environment-info.sh"]
