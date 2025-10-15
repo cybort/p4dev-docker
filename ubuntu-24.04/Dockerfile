@@ -7,8 +7,6 @@ ENV PYTHON_ENV=${INSTALL_DIR}/p4dev-python-venv
 
 WORKDIR ${INSTALL_DIR}
 
-COPY p4-environment-info.sh ./
-
 RUN apt-get update && apt-get install -y --fix-missing\
     autoconf \
     automake \
@@ -34,6 +32,8 @@ RUN apt-get update && apt-get install -y --fix-missing\
     net-tools \
     git \
     wget \
+	vim \
+	dos2unix \
     && rm -rf /var/lib/apt/lists/*
 
 RUN python3 -m venv ${PYTHON_ENV}
@@ -95,7 +95,7 @@ WORKDIR ${INSTALL_DIR}
 WORKDIR ${INSTALL_DIR}/p4c
 RUN mkdir build && cd build && cmake .. -DCMAKE_BUILD_TYPE=Release -DENABLE_TEST_TOOLS=ON
 WORKDIR ${INSTALL_DIR}/p4c/build
-RUN make -j8
+RUN make -j4
 RUN make install/strip
 RUN ldconfig
 WORKDIR ${INSTALL_DIR}
@@ -126,8 +126,6 @@ RUN pip3 install .
 WORKDIR ${INSTALL_DIR}
 
 COPY utils ./utils
-
-RUN apt-get install -y vim
 
 RUN echo "source ${PYTHON_ENV}/bin/activate" > p4setup.sh
 RUN echo "export PATH=\"${INSTALL_DIR}/utils:${INSTALL_DIR}/behavioral-model/tools:/usr/local/bin:\$PATH\"" >> p4setup.sh
