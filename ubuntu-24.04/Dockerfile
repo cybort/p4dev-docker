@@ -32,8 +32,17 @@ RUN apt-get update && apt-get install -y --fix-missing\
     net-tools \
     git \
     wget \
-	vim \
-	dos2unix \
+    vim \
+    dos2unix \
+    iputils-ping \
+    iputils-arping \
+    iputils-tracepath \
+    iproute2 \
+    iperf3 \
+    tcpdump \
+    netcat-openbsd \
+    ethtool \
+    wireshark-cli \
     && rm -rf /var/lib/apt/lists/*
 
 RUN python3 -m venv ${PYTHON_ENV}
