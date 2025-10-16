@@ -126,10 +126,12 @@ RUN pip3 install .
 WORKDIR ${INSTALL_DIR}
 
 COPY utils ./utils
+RUN find . -type f -name "*.sh" -exec sed -i 's/sudo //g' {} +
+RUN find . -type f -name "*Makefile" -exec sed -i 's/sudo //g' {} +
 
 RUN echo "source ${PYTHON_ENV}/bin/activate" > p4setup.sh
 RUN echo "export PATH=\"${INSTALL_DIR}/utils:${INSTALL_DIR}/behavioral-model/tools:/usr/local/bin:\$PATH\"" >> p4setup.sh
-RUN echo "export P4_EXTRA_SUDO_OPTS=\"PROTOCOL_BUFFERS_PYTHON_IMPLEMETATION=python\"" >> p4setup.sh
+RUN echo "export P4_EXTRA_SUDO_OPTS=\"PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION=python\"" >> p4setup.sh
 RUN chmod +x p4setup.sh
 RUN echo "source ${INSTALL_DIR}/p4setup.sh" >> ~/.bashrc
 
