@@ -42,7 +42,7 @@ RUN apt-get update && apt-get install -y --fix-missing\
     tcpdump \
     netcat-openbsd \
     ethtool \
-    wireshark-cli \
+    wireshark \
     && rm -rf /var/lib/apt/lists/*
 
 RUN python3 -m venv ${PYTHON_ENV}
