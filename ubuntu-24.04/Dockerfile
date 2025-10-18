@@ -42,7 +42,9 @@ RUN apt-get update && apt-get install -y --fix-missing\
     tcpdump \
     netcat-openbsd \
     ethtool \
+    tshark \
     wireshark \
+    openvswitch-switch \
     && rm -rf /var/lib/apt/lists/*
 
 RUN python3 -m venv ${PYTHON_ENV}
@@ -121,7 +123,7 @@ WORKDIR ${INSTALL_DIR}/mininet
 RUN sed -i 's/sudo //g' ./util/install.sh
 RUN sed -i 's/$install /eval $install /g' ./util/install.sh
 RUN sed -i 's/$install /eval $install /g' ./util/install.sh
-RUN PYTHON=python3 ./util/install.sh -nw
+RUN PYTHON=python3 ./util/install.sh -n
 WORKDIR ${INSTALL_DIR}
 
 WORKDIR ${INSTALL_DIR}/ptf
